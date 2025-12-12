@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Insights – Rafaqat CRM</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        margin: 0; padding: 20px;
+        background: #f2f4f7;
+    }
+    .container {
+        max-width: 900px;
+        margin: auto;
+    }
+    h1 { margin-bottom: 10px; }
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+        gap: 15px;
+        margin-top: 20px;
+    }
+    .card {
+        background:white; padding:20px; border-radius:12px;
+        box-shadow:0 3px 8px rgba(0,0,0,0.1);
+        text-align:center;
+    }
+    .num {
+        font-size: 32px;
+        font-weight: bold;
+        margin-top: 8px;
+    }
+    .label {
+        color:#555;
+        font-size:14px;
+    }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h1>📊 CRM Insights</h1>
+    <p>Realtime analytics from your Firestore database (enquiries collection).</p>
+
+    <div class="grid">
+        <div class="card">
+            <div class="label">Total Enquiries</div>
+            <div id="total" class="num">0</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Hot Leads</div>
+            <div id="hot" class="num">0</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Warm Leads</div>
+            <div id="warm" class="num">0</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Cold Leads</div>
+            <div id="cold" class="num">0</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Today's Enquiries</div>
+            <div id="today" class="num">0</div>
+        </div>
+
+        <div class="card">
+            <div class="label">Last 7 Days</div>
+            <div id="week" class="num">0</div>
+        </div>
+    </div>
+</div>
+
+<!-- Firebase SDK -->
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // Firebase Config
+    const firebaseConfig = {
+        apiKey: "AIzaSyC6E2DWPHJZKQWuv6v3Bpyk9tVnkYU8dSk",
+        authDomain: "rafaqat-crm.firebaseapp.com",
+        projectId: "rafaqat-crm",
+        storageBucket: "rafaqat-crm.firebasestorage.app",
+        messagingSenderId: "321407849510",
+        appId: "1:321407849510:web:2200b31b9be0f6a9c1c2e7"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Elements
+    const totalEl = document.getElementById("total");
+    const hotEl = document.getElementById("hot");
+    const warmEl = document.getElementById("warm");
+    const coldEl = document.getElementById("cold");
+    const todayEl = document.getElementById("today");
+    const weekEl = document.getElementById("week");
+
+    // Fetch Insights Function
+    async function loadInsights() {
+        const snapshot = await getDocs(collection(db, "enquiries"));
+
+        let total = 0, hot = 0, warm = 0, cold = 0;
+        let todayCount = 0, weekCount = 0;
+
+        const now = new Date();
+        const todayStr = now.toISOString().slice(0, 10);
+        const weekAgo = new Date(now.getTime() - 7*24*60*60*1000);
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            total++;
+
+            // Lead Type Count
+            if (data.leadType === "Hot") hot++;
+            else if (data.leadType === "Warm") warm++;
+            else if (data.leadType === "Cold") cold++;
+
+            // Dates
+            if (data.createdAt) {
+                const created = new Date(data.createdAt.seconds * 1000);
+
+                // Today Count
+                const createdStr = created.toISOString().slice(0, 10);
+                if (createdStr === todayStr) todayCount++;
+
+                // Last 7 Days
+                if (created >= weekAgo) weekCount++;
+            }
+        });
+
+        // Update UI
+        totalEl.textContent = total;
+        hotEl.textContent = hot;
+        warmEl.textContent = warm;
+        coldEl.textContent = cold;
+        todayEl.textContent = todayCount;
+        weekEl.textContent = weekCount;
+    }
+
+    // Load every 5 seconds (auto refresh)
+    loadInsights();
+    setInterval(loadInsights, 5000);
+</script>
+
+</body>
+</html>
